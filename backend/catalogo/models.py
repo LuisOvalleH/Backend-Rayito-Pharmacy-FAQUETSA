@@ -1,11 +1,55 @@
 from django.db import models
 
-class Producto(models.Model):
-    nombre = models.CharField(max_length=100)
-    descripcion = models.TextField()
-    precio = models.DecimalField(max_digits=8, decimal_places=2)
-    disponible = models.BooleanField(default=True)
-    imagen = models.URLField()
+
+class Categoria(models.Model):
+    nombre = models.CharField(max_length=60, unique=True)
+    slug = models.SlugField(max_length=80, unique=True)
+
+    class Meta:
+        verbose_name = "Categoría"
+        verbose_name_plural = "Categorías"
+        ordering = ["nombre"]
 
     def __str__(self):
         return self.nombre
+
+
+class Producto(models.Model):
+    class Estado(models.TextChoices):
+        DISPONIBLE = "disponible", "Disponible"
+        AGOTADO = "agotado", "Agotado"
+        DESCONTINUADO = "descontinuado", "Descontinuado"
+
+    nombre = models.CharField(max_length=120)
+    descripcion = models.TextField(blank=True)
+    precio = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    imagen = models.URLField(blank=True)
+
+    categoria = models.ForeignKey(
+        Categoria,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="productos",
+    )
+
+    estado = models.CharField(
+        max_length=20,
+        choices=Estado.choices,
+        default=Estado.DISPONIBLE,
+        db_index=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return self.nombre
+
+    @property
+    def disponible(self):
+        # Para el front: True solo si está disponible
+        return self.estado == self.Estado.DISPONIBLE

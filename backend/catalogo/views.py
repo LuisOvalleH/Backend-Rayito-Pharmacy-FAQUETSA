@@ -1,7 +1,27 @@
 from rest_framework.viewsets import ModelViewSet
-from .models import Producto
-from .serializers import ProductoSerializer
+from rest_framework.permissions import AllowAny, IsAdminUser
+
+from .models import Producto, Categoria
+from .serializers import ProductoSerializer, CategoriaSerializer
+
+
+class CategoriaViewSet(ModelViewSet):
+    queryset = Categoria.objects.all().order_by("nombre")
+    serializer_class = CategoriaSerializer
+
+    def get_permissions(self):
+        # GET público (list/retrieve), escritura solo admin
+        if self.action in ["list", "retrieve"]:
+            return [AllowAny()]
+        return [IsAdminUser()]
+
 
 class ProductoViewSet(ModelViewSet):
-    queryset = Producto.objects.all()
+    queryset = Producto.objects.select_related("categoria").all().order_by("-updated_at")
     serializer_class = ProductoSerializer
+
+    def get_permissions(self):
+        # GET público (list/retrieve), escritura solo admin
+        if self.action in ["list", "retrieve"]:
+            return [AllowAny()]
+        return [IsAdminUser()]
