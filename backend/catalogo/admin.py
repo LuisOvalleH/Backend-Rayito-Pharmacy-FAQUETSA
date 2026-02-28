@@ -90,13 +90,13 @@ class ProductoAdmin(admin.ModelAdmin):
 
     # Acciones
     def marcar_disponible(self, request, queryset):
-        queryset.update(estado="DISPONIBLE")
+        queryset.update(estado=Producto.Estado.DISPONIBLE)
     marcar_disponible.short_description = "Marcar como DISPONIBLE"
 
     def marcar_agotado(self, request, queryset):
-        queryset.update(estado="AGOTADO")
+        queryset.update(estado=Producto.Estado.AGOTADO)
     marcar_agotado.short_description = "Marcar como AGOTADO"
 
     def marcar_descontinuado(self, request, queryset):
-        queryset.update(estado="DESCONTINUADO")
+        queryset.update(estado=Producto.Estado.DESCONTINUADO)
     marcar_descontinuado.short_description = "Marcar como DESCONTINUADO"
