@@ -1,10 +1,12 @@
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+IS_RUNNING_TESTS = "test" in sys.argv
 
 
 def load_env_file(path):
@@ -34,6 +36,12 @@ def get_list(name, default=""):
 
 
 def get_database_config():
+    if IS_RUNNING_TESTS and get_bool("DJANGO_USE_SQLITE_FOR_TESTS", True):
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'test_db.sqlite3',
+        }
+
     database_url = os.getenv("DATABASE_URL", "").strip()
     if database_url:
         parsed = urlparse(database_url)
@@ -43,6 +51,7 @@ def get_database_config():
         if parsed.scheme not in {"postgres", "postgresql"}:
             raise ValueError("DATABASE_URL must use postgres:// or postgresql://")
 
+        conn_max_age = int(os.getenv("POSTGRES_CONN_MAX_AGE", "60"))
         return {
             'ENGINE': engine,
             'NAME': parsed.path.lstrip('/'),
@@ -50,7 +59,7 @@ def get_database_config():
             'PASSWORD': parsed.password or '',
             'HOST': parsed.hostname or '127.0.0.1',
             'PORT': str(parsed.port or '5432'),
-            'CONN_MAX_AGE': int(os.getenv("POSTGRES_CONN_MAX_AGE", "60")),
+            'CONN_MAX_AGE': conn_max_age,
             'OPTIONS': {
                 'sslmode': os.getenv(
                     "POSTGRES_SSLMODE",
@@ -60,6 +69,7 @@ def get_database_config():
         }
 
     if os.getenv("POSTGRES_DB"):
+        conn_max_age = int(os.getenv("POSTGRES_CONN_MAX_AGE", "60"))
         return {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('POSTGRES_DB'),
@@ -67,7 +77,7 @@ def get_database_config():
             'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
             'HOST': os.getenv('POSTGRES_HOST', '127.0.0.1'),
             'PORT': os.getenv('POSTGRES_PORT', '5432'),
-            'CONN_MAX_AGE': int(os.getenv("POSTGRES_CONN_MAX_AGE", "60")),
+            'CONN_MAX_AGE': conn_max_age,
             'OPTIONS': {
                 'sslmode': os.getenv('POSTGRES_SSLMODE', 'prefer'),
             },
@@ -205,3 +215,11 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": False,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
+CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
+CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "").strip()
+CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "").strip()
+CLOUDINARY_UPLOAD_FOLDER = os.getenv(
+    "CLOUDINARY_UPLOAD_FOLDER",
+    "rayito-pharmacy/productos",
+).strip()

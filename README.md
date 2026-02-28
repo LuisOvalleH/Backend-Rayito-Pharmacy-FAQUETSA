@@ -89,8 +89,17 @@ python manage.py test
 - `DJANGO_CORS_ALLOWED_ORIGINS`: origins del frontend separados por coma.
 - `DJANGO_CSRF_TRUSTED_ORIGINS`: origins confiables para CSRF.
 - `DJANGO_SECURE_SSL_REDIRECT`: forzar HTTPS cuando aplique.
+- `DJANGO_USE_SQLITE_FOR_TESTS`: deja los tests en SQLite aunque el proyecto use Neon.
 - `DATABASE_URL`: conexion PostgreSQL completa, recomendada para Neon.
 - `POSTGRES_*`: alternativa si no se usa `DATABASE_URL`.
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`: credenciales de Cloudinary para subir imagenes desde el admin.
+- `CLOUDINARY_UPLOAD_FOLDER`: carpeta destino en Cloudinary.
+
+## Imagenes de productos
+
+- El admin de productos ya acepta imagenes desde la PC.
+- El backend recibe el archivo y lo sube a Cloudinary.
+- En la base de datos solo se guarda la URL final de la imagen.
 
 ## Validacion rapida
 

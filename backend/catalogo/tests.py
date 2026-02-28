@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
+from unittest.mock import patch
 
 from .models import Categoria, Producto
 
@@ -73,7 +75,8 @@ class CatalogSecurityTests(APITestCase):
             format="json",
         )
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("imagen_file", response.data)
 
     def test_auth_me_requires_authentication(self):
         response = self.client.get("/api/auth/me/")
@@ -87,3 +90,39 @@ class CatalogSecurityTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["username"], "admin")
         self.assertTrue(response.data["is_staff"])
+
+    @patch("catalogo.serializers.upload_product_image")
+    def test_admin_can_create_product_with_image_upload(self, mock_upload_product_image):
+        mock_upload_product_image.return_value = "https://res.cloudinary.com/demo/image/upload/sample.jpg"
+        access = self._login("admin", "adminpass123")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+
+        image = SimpleUploadedFile(
+            "producto.gif",
+            (
+                b"GIF87a\x01\x00\x01\x00\x80\x00\x00"
+                b"\x00\x00\x00\xff\xff\xff!\xf9\x04\x00\x00\x00\x00\x00,"
+                b"\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+            ),
+            content_type="image/gif",
+        )
+
+        response = self.client.post(
+            "/api/products/",
+            {
+                "nombre": "Vitamina C",
+                "descripcion": "Tabletas",
+                "precio": "12.50",
+                "categoria": str(self.categoria.id),
+                "estado": Producto.Estado.DISPONIBLE,
+                "imagen_file": image,
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            response.data["imagen"],
+            "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+        )
+        mock_upload_product_image.assert_called_once()
