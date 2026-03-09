@@ -24,6 +24,9 @@ class Producto(models.Model):
     descripcion = models.TextField(blank=True)
     precio = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     imagen = models.URLField(blank=True)
+    formula = models.TextField(blank=True, default="")
+    registro = models.CharField(max_length=120, blank=True, default="")
+    presentacion = models.CharField(max_length=120, blank=True, default="")
 
     categoria = models.ForeignKey(
         Categoria,
