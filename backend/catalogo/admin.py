@@ -1,7 +1,49 @@
+from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Producto, Categoria
+from .models import Producto, Categoria, ImagenInformacion
+from .cloudinary_service import upload_product_image
 
+class ImagenInformacionAdminForm(forms.ModelForm):
+    imagen = forms.URLField(
+        required=False,
+        label="Imagen"
+    )
+
+    imagen_file = forms.ImageField(
+        required=False,
+        label="Subir imagen",
+        help_text="Selecciona una imagen JPG, PNG o WEBP."
+    )
+
+    class Meta:
+        model = ImagenInformacion
+        fields = "__all__"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        imagen = cleaned_data.get("imagen")
+        archivo = cleaned_data.get("imagen_file")
+
+        if not imagen and not archivo:
+            raise forms.ValidationError("Debes proporcionar una URL o subir una imagen.")
+
+        return cleaned_data
+
+    def clean_imagen_file(self):
+        archivo = self.cleaned_data.get("imagen_file")
+        if not archivo:
+            return archivo
+
+        content_type = getattr(archivo, "content_type", "")
+        if not content_type.startswith("image/"):
+            raise forms.ValidationError("Solo se permiten archivos de imagen.")
+
+        max_size = 5 * 1024 * 1024  # 5 MB
+        if archivo.size > max_size:
+            raise forms.ValidationError("La imagen no puede superar 5 MB.")
+
+        return archivo
 
 @admin.register(Categoria)
 class CategoriaAdmin(admin.ModelAdmin):
@@ -100,3 +142,42 @@ class ProductoAdmin(admin.ModelAdmin):
     def marcar_descontinuado(self, request, queryset):
         queryset.update(estado=Producto.Estado.DESCONTINUADO)
     marcar_descontinuado.short_description = "Marcar como DESCONTINUADO"
+
+@admin.register(ImagenInformacion)
+class ImagenInformacionAdmin(admin.ModelAdmin):
+    form = ImagenInformacionAdminForm
+
+    list_display = ("id", "titulo", "orden", "activa", "imagen_link", "created_at", "updated_at")
+    list_filter = ("activa",)
+    search_fields = ("titulo", "descripcion")
+    ordering = ("orden", "-updated_at")
+    list_editable = ("orden", "activa")
+    readonly_fields = ("created_at", "updated_at")
+
+    fieldsets = (
+        ("Información principal", {
+            "fields": ("titulo", "descripcion")
+        }),
+        ("Imagen", {
+            "fields": ("imagen", "imagen_file")
+        }),
+        ("Configuración", {
+            "fields": ("orden", "activa")
+        }),
+        ("Fechas", {
+            "fields": ("created_at", "updated_at")
+        }),
+    )
+
+    def save_model(self, request, obj, form, change):
+        imagen_file = form.cleaned_data.get("imagen_file")
+        if imagen_file:
+            obj.imagen = upload_product_image(imagen_file)
+        super().save_model(request, obj, form, change)
+
+    def imagen_link(self, obj):
+        if not obj.imagen:
+            return "-"
+        return format_html('<a href="{}" target="_blank">Ver</a>', obj.imagen)
+
+    imagen_link.short_description = "Imagen"
