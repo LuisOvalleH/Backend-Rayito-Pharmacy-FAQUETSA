@@ -74,6 +74,30 @@ class ProductoSerializer(serializers.ModelSerializer):
         if image_file:
             validated_data["imagen"] = upload_product_image(image_file)
         return super().update(instance, validated_data)
+      
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("El precio debe ser mayor a Q0.00.")
+        if value > 999_999:
+            raise serializers.ValidationError("El precio no puede superar Q999,999.00.")
+        return value
+
+    def validate_imagen_file(self, value):
+        if value is None:
+            return value
+
+        allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+        max_size_mb = 5
+
+        if value.content_type not in allowed_types:
+            raise serializers.ValidationError(
+                "Solo se permiten imágenes en formato JPEG, PNG, WebP o GIF."
+                )
+        if value.size > max_size_mb * 1024 * 1024:
+            raise serializers.ValidationError(
+            f"La imagen no puede superar {max_size_mb}MB."
+            )
+        return value
 
 class ImagenInformacionSerializer(serializers.ModelSerializer):
     imagen_file = serializers.ImageField(write_only=True, required=False, allow_null=True)
