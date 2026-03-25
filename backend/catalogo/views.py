@@ -11,8 +11,8 @@ from django.contrib.auth.models import User
 from .serializers import AdminSerializer
 from .permissions import IsSuperAdmin
 
-from .models import Producto, Categoria
-from .serializers import ProductoSerializer, CategoriaSerializer
+from .models import Producto, Categoria, ImagenInformacion
+from .serializers import ProductoSerializer, CategoriaSerializer, ImagenInformacionSerializer
 from .cloudinary_service import upload_product_image
 
 
@@ -38,6 +38,15 @@ class ProductoViewSet(ModelViewSet):
             return [AllowAny()]
         return [IsAdminUser()]
 
+class ImagenInformacionViewSet(ModelViewSet):
+    queryset = ImagenInformacion.objects.all().order_by("orden", "-updated_at")
+    serializer_class = ImagenInformacionSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            return [AllowAny()]
+        return [IsAdminUser()]
 
 class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
