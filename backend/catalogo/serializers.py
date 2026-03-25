@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Producto, Categoria
 from .cloudinary_service import upload_product_image
 from django.utils.text import slugify
+from django.contrib.auth.models import User
+
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -60,4 +62,24 @@ class ProductoSerializer(serializers.ModelSerializer):
         if image_file:
             validated_data["imagen"] = upload_product_image(image_file)
         return super().update(instance, validated_data)
+    
+class AdminSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "password", "is_staff", "is_superuser"]
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+
+        user = User(**validated_data)
+        user.set_password(password)
+
+        # seguridad mínima
+        if not user.is_staff:
+            raise serializers.ValidationError("Debe ser al menos admin")
+
+        user.save()
+        return user
 

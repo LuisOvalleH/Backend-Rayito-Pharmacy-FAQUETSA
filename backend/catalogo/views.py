@@ -6,6 +6,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework import viewsets
+from django.contrib.auth.models import User
+from .serializers import AdminSerializer
+from .permissions import IsSuperAdmin
 
 from .models import Producto, Categoria
 from .serializers import ProductoSerializer, CategoriaSerializer
@@ -40,6 +44,15 @@ class CurrentUserView(APIView):
 
     def get(self, request):
         user = request.user
+
+        # para manejar roles
+        if user.is_superuser:
+            role = "superadmin"
+        elif user.is_staff:
+            role = "admin"
+        else:
+            role = "user"
+
         return Response(
             {
                 "id": user.id,
@@ -47,9 +60,9 @@ class CurrentUserView(APIView):
                 "email": user.email,
                 "is_staff": user.is_staff,
                 "is_superuser": user.is_superuser,
+                "role": role,  
             }
         )
-
 
 class ProductImageUploadView(APIView):
     permission_classes = [IsAdminUser]
@@ -62,3 +75,8 @@ class ProductImageUploadView(APIView):
 
         image_url = upload_product_image(file_obj)
         return Response({"url": image_url}, status=status.HTTP_201_CREATED)
+    
+class AdminViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.filter(is_staff=True)
+    serializer_class = AdminSerializer
+    permission_classes = [IsSuperAdmin]
