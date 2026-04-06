@@ -6,9 +6,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework import viewsets
+from django.contrib.auth.models import User
+from .serializers import AdminSerializer
+from .permissions import IsSuperAdmin
 
-from .models import Producto, Categoria
-from .serializers import ProductoSerializer, CategoriaSerializer
+from .models import Producto, Categoria, ImagenInformacion
+from .serializers import ProductoSerializer, CategoriaSerializer, ImagenInformacionSerializer
 from .cloudinary_service import upload_product_image
 
 
@@ -34,12 +38,30 @@ class ProductoViewSet(ModelViewSet):
             return [AllowAny()]
         return [IsAdminUser()]
 
+class ImagenInformacionViewSet(ModelViewSet):
+    queryset = ImagenInformacion.objects.all().order_by("orden", "-updated_at")
+    serializer_class = ImagenInformacionSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            return [AllowAny()]
+        return [IsAdminUser()]
 
 class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
+
+        # para manejar roles
+        if user.is_superuser:
+            role = "superadmin"
+        elif user.is_staff:
+            role = "admin"
+        else:
+            role = "user"
+
         return Response(
             {
                 "id": user.id,
@@ -47,9 +69,9 @@ class CurrentUserView(APIView):
                 "email": user.email,
                 "is_staff": user.is_staff,
                 "is_superuser": user.is_superuser,
+                "role": role,  
             }
         )
-
 
 class ProductImageUploadView(APIView):
     permission_classes = [IsAdminUser]
@@ -62,3 +84,8 @@ class ProductImageUploadView(APIView):
 
         image_url = upload_product_image(file_obj)
         return Response({"url": image_url}, status=status.HTTP_201_CREATED)
+    
+class AdminViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.filter(is_staff=True)
+    serializer_class = AdminSerializer
+    permission_classes = [IsSuperAdmin]

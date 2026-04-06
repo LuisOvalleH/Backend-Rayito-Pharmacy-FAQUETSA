@@ -56,3 +56,20 @@ class Producto(models.Model):
     def disponible(self):
         # Para el front: True solo si está disponible
         return self.estado == self.Estado.DISPONIBLE
+
+class ImagenInformacion(models.Model):
+    titulo = models.CharField(max_length=120)
+    descripcion = models.TextField(blank=True, default="")
+    imagen = models.URLField()
+    orden = models.PositiveIntegerField(default=0)
+    activa = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Imagen de información"
+        verbose_name_plural = "Imágenes de información"
+        ordering = ["orden", "-updated_at"]
+
+    def __str__(self):
+        return self.titulo
