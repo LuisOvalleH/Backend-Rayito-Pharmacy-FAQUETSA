@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from .models import Producto, Categoria, ImagenInformacion
+from .models import Producto, Categoria, ImagenInformacion, Servicio, PasoProceso, Confianza
 from .cloudinary_service import upload_product_image
 from django.utils.text import slugify
+
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -148,3 +149,21 @@ class ImagenInformacionSerializer(serializers.ModelSerializer):
         if imagen_file:
             validated_data["imagen"] = upload_product_image(imagen_file)
         return super().update(instance, validated_data)
+    
+
+class ServicioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Servicio
+        fields = "__all__"
+
+class PasoProcesoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PasoProceso
+        fields = "__all__"
+
+class ConfianzaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Confianza
+        fields = "__all__"
+
+
