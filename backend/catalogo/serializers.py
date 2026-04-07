@@ -142,13 +142,12 @@ class ImagenInformacionSerializer(serializers.ModelSerializer):
             })
 
         if imagen_file:
+            content_type = getattr(imagen_file, "content_type", "")
             allowed_types = ["image/jpeg", "image/png", "image/webp"]
             if content_type not in allowed_types:
                 raise serializers.ValidationError({
                     "imagen_file": "Solo se permiten JPG, PNG o WEBP."
                 })
-            
-            content_type = getattr(imagen_file, "content_type", "")
             if not content_type.startswith("image/"):
                 raise serializers.ValidationError({
                     "imagen_file": "Solo se permiten archivos de imagen."
