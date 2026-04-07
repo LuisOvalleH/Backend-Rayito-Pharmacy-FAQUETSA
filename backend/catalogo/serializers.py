@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Producto, Categoria, ImagenInformacion
 from .cloudinary_service import upload_product_image
 from django.utils.text import slugify
+from django.contrib.auth.models import User
+
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -74,6 +76,7 @@ class ProductoSerializer(serializers.ModelSerializer):
         if image_file:
             validated_data["imagen"] = upload_product_image(image_file)
         return super().update(instance, validated_data)
+
       
     def validate_price(self, value):
         if value <= 0:
@@ -81,6 +84,7 @@ class ProductoSerializer(serializers.ModelSerializer):
         if value > 999_999:
             raise serializers.ValidationError("El precio no puede superar Q999,999.00.")
         return value
+
 
     def validate_imagen_file(self, value):
         if value is None:
@@ -99,6 +103,27 @@ class ProductoSerializer(serializers.ModelSerializer):
             )
         return value
 
+
+class AdminSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "password", "is_staff", "is_superuser"]
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+
+        user = User(**validated_data)
+        user.set_password(password)
+
+        # seguridad mínima
+        if not user.is_staff:
+            raise serializers.ValidationError("Debe ser al menos admin")
+
+        user.save()
+        return user
+    
 class ImagenInformacionSerializer(serializers.ModelSerializer):
     imagen_file = serializers.ImageField(write_only=True, required=False, allow_null=True)
 
