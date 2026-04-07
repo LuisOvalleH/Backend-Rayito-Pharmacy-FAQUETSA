@@ -106,17 +106,25 @@ class ProductoSerializer(serializers.ModelSerializer):
 
 
 class AdminSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ["id", "username", "password", "is_staff", "is_superuser"]
+        fields = ["id", "username", "password", "is_staff", "is_superuser", "is_active"]
 
     def create(self, validated_data):
-        password = validated_data.pop("password")
+        request = self.context.get('request')
+        if request and not request.user.is_superuser:
+            if validated_data.get('is_superuser', False):
+                raise serializers.ValidationError("Solo los superadministradores pueden crear superusuarios.")
+
+        password = validated_data.pop("password", None)
 
         user = User(**validated_data)
-        user.set_password(password)
+        if password:
+            user.set_password(password)
+        else:
+            raise serializers.ValidationError("La contraseña es requerida al crear un usuario.")
 
         # seguridad mínima
         if not user.is_staff:
@@ -124,6 +132,18 @@ class AdminSerializer(serializers.ModelSerializer):
 
         user.save()
         return user
+
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        if request and not request.user.is_superuser:
+            if validated_data.get('is_superuser', instance.is_superuser) and not instance.is_superuser:
+                raise serializers.ValidationError("Solo los superadministradores pueden promover a superusuario.")
+
+        password = validated_data.pop("password", None)
+        if password:
+            instance.set_password(password)
+        
+        return super().update(instance, validated_data)
     
 class ImagenInformacionSerializer(serializers.ModelSerializer):
     imagen_file = serializers.ImageField(write_only=True, required=False, allow_null=True)
