@@ -1,11 +1,11 @@
 from rest_framework import serializers
-from .models import Producto, Categoria, ImagenInformacion
-from .cloudinary_service import upload_product_image
+from .models import Producto, Categoria, ImagenInformacion, SiteConfig
+from .cloudinary_service import upload_product_image, ALLOWED_CONTENT_TYPES, MIN_DIMENSION
 from django.utils.text import slugify
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
-    slug = serializers.SlugField(read_only=True)  # el front nunca lo manda
+    slug = serializers.SlugField(read_only=True)
 
     class Meta:
         model = Categoria
@@ -31,7 +31,6 @@ class CategoriaSerializer(serializers.ModelSerializer):
 
 
 class ProductoSerializer(serializers.ModelSerializer):
-    # extra solo para lectura (para el frontend)
     categoria_nombre = serializers.CharField(source="categoria.nombre", read_only=True)
     imagen_file = serializers.ImageField(write_only=True, required=False, allow_null=True)
 
@@ -40,28 +39,52 @@ class ProductoSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ["created_at", "updated_at"]
 
+    def validate_imagen_file(self, value):
+        if value is None:
+            return value
+
+        # Formato
+        content_type = getattr(value, "content_type", "").lower()
+        if content_type not in ALLOWED_CONTENT_TYPES:
+            raise serializers.ValidationError(
+                "Solo se permiten imágenes en formato JPG, PNG o WebP."
+            )
+
+        # Dimensiones mínimas
+        try:
+            from PIL import Image as PilImage
+            value.seek(0)
+            img = PilImage.open(value)
+            w, h = img.size
+            value.seek(0)
+            if w < MIN_DIMENSION or h < MIN_DIMENSION:
+                raise serializers.ValidationError(
+                    f"La imagen debe tener al menos {MIN_DIMENSION}×{MIN_DIMENSION} px "
+                    f"(recibida: {w}×{h} px)."
+                )
+        except serializers.ValidationError:
+            raise
+        except Exception:
+            pass
+
+        return value
+
     def validate(self, attrs):
         image_file = attrs.get("imagen_file")
         image_url = attrs.get("imagen")
-        
+
         if self.instance is None and not image_file and not image_url:
             raise serializers.ValidationError(
                 {"imagen_file": "La imagen es obligatoria al crear un producto."}
             )
-        
-        if image_file:
-            content_type = getattr(image_file, "content_type", "")
-            if not content_type.startswith("image/"):
-                raise serializers.ValidationError(
-                    {"imagen_file": "Solo se permiten archivos de imagen."}
-                )
-            
-            max_size = 5 * 1024 * 1024  # 5 MB
-            if image_file.size > max_size:
-                raise serializers.ValidationError(
-                    {"imagen_file": "La imagen no puede superar 5 MB."}
-                )
         return attrs
+
+    def validate_precio(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("El precio debe ser mayor a Q0.00.")
+        if value > 999_999:
+            raise serializers.ValidationError("El precio no puede superar Q999,999.00.")
+        return value
 
     def create(self, validated_data):
         image_file = validated_data.pop("imagen_file", None)
@@ -74,30 +97,7 @@ class ProductoSerializer(serializers.ModelSerializer):
         if image_file:
             validated_data["imagen"] = upload_product_image(image_file)
         return super().update(instance, validated_data)
-      
-    def validate_price(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("El precio debe ser mayor a Q0.00.")
-        if value > 999_999:
-            raise serializers.ValidationError("El precio no puede superar Q999,999.00.")
-        return value
 
-    def validate_imagen_file(self, value):
-        if value is None:
-            return value
-
-        allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
-        max_size_mb = 5
-
-        if value.content_type not in allowed_types:
-            raise serializers.ValidationError(
-                "Solo se permiten imágenes en formato JPEG, PNG, WebP o GIF."
-                )
-        if value.size > max_size_mb * 1024 * 1024:
-            raise serializers.ValidationError(
-            f"La imagen no puede superar {max_size_mb}MB."
-            )
-        return value
 
 class ImagenInformacionSerializer(serializers.ModelSerializer):
     imagen_file = serializers.ImageField(write_only=True, required=False, allow_null=True)
@@ -107,6 +107,37 @@ class ImagenInformacionSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ["created_at", "updated_at"]
 
+    def validate_imagen_file(self, value):
+        if value is None:
+            return value
+
+        # Orden correcto: obtener content_type antes de usarlo
+        content_type = getattr(value, "content_type", "").lower()
+
+        if content_type not in ALLOWED_CONTENT_TYPES:
+            raise serializers.ValidationError(
+                "Solo se permiten imágenes JPG, PNG o WebP."
+            )
+
+        # Dimensiones mínimas
+        try:
+            from PIL import Image as PilImage
+            value.seek(0)
+            img = PilImage.open(value)
+            w, h = img.size
+            value.seek(0)
+            if w < MIN_DIMENSION or h < MIN_DIMENSION:
+                raise serializers.ValidationError(
+                    f"La imagen debe tener al menos {MIN_DIMENSION}×{MIN_DIMENSION} px "
+                    f"(recibida: {w}×{h} px)."
+                )
+        except serializers.ValidationError:
+            raise
+        except Exception:
+            pass
+
+        return value
+
     def validate(self, attrs):
         imagen_file = attrs.get("imagen_file")
         imagen_url = attrs.get("imagen")
@@ -115,26 +146,6 @@ class ImagenInformacionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 "imagen_file": "La imagen es obligatoria al crear un registro de información."
             })
-
-        if imagen_file:
-            allowed_types = ["image/jpeg", "image/png", "image/webp"]
-            if content_type not in allowed_types:
-                raise serializers.ValidationError({
-                    "imagen_file": "Solo se permiten JPG, PNG o WEBP."
-                })
-            
-            content_type = getattr(imagen_file, "content_type", "")
-            if not content_type.startswith("image/"):
-                raise serializers.ValidationError({
-                    "imagen_file": "Solo se permiten archivos de imagen."
-                })
-
-            max_size = 5 * 1024 * 1024  # 5 MB
-            if imagen_file.size > max_size:
-                raise serializers.ValidationError({
-                    "imagen_file": "La imagen no puede superar 5 MB."
-                })
-
         return attrs
 
     def create(self, validated_data):
@@ -148,3 +159,13 @@ class ImagenInformacionSerializer(serializers.ModelSerializer):
         if imagen_file:
             validated_data["imagen"] = upload_product_image(imagen_file)
         return super().update(instance, validated_data)
+
+
+class SiteConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SiteConfig
+        fields = [
+            "productos_por_pagina",
+            "max_imagenes_home",
+            "max_destacados_home",
+        ]

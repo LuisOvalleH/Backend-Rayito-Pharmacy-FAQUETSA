@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Categoria(models.Model):
@@ -43,19 +44,27 @@ class Producto(models.Model):
         db_index=True,
     )
 
+    # ── NUEVO: producto destacado ──────────────────────────────────────
+    destacado = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Aparece en la sección de destacados del Home y primero en el catálogo.",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["-updated_at"]
+        # Destacados primero, luego por fecha de actualización
+        ordering = ["-destacado", "-updated_at"]
 
     def __str__(self):
         return self.nombre
 
     @property
     def disponible(self):
-        # Para el front: True solo si está disponible
         return self.estado == self.Estado.DISPONIBLE
+
 
 class ImagenInformacion(models.Model):
     titulo = models.CharField(max_length=120)
@@ -73,3 +82,39 @@ class ImagenInformacion(models.Model):
 
     def __str__(self):
         return self.titulo
+
+
+class SiteConfig(models.Model):
+    """
+    Configuración global del sitio — singleton (siempre pk=1).
+    El admin puede ajustar cuántos productos se muestran por página
+    y cuántas imágenes informativas se muestran en el Home.
+    """
+    productos_por_pagina = models.PositiveSmallIntegerField(
+        default=12,
+        validators=[MinValueValidator(4), MaxValueValidator(48)],
+        help_text="Cuántos productos se muestran por página en el catálogo público (4–48).",
+    )
+    max_imagenes_home = models.PositiveSmallIntegerField(
+        default=6,
+        validators=[MinValueValidator(1), MaxValueValidator(20)],
+        help_text="Máximo de imágenes informativas visibles en el Home (1–20).",
+    )
+    max_destacados_home = models.PositiveSmallIntegerField(
+        default=8,
+        validators=[MinValueValidator(1), MaxValueValidator(20)],
+        help_text="Máximo de productos destacados visibles en la sección de Home (1–20).",
+    )
+
+    class Meta:
+        verbose_name = "Configuración del sitio"
+        verbose_name_plural = "Configuración del sitio"
+
+    def __str__(self):
+        return "Configuración del sitio"
+
+    @classmethod
+    def get(cls):
+        """Devuelve la instancia única, creándola si no existe."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
