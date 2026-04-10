@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Producto, Categoria, ImagenInformacion
+from .models import Producto, Categoria, ImagenInformacion, Historial
 from .cloudinary_service import upload_product_image
 
 class ImagenInformacionAdminForm(forms.ModelForm):
@@ -181,3 +181,10 @@ class ImagenInformacionAdmin(admin.ModelAdmin):
         return format_html('<a href="{}" target="_blank">Ver</a>', obj.imagen)
 
     imagen_link.short_description = "Imagen"
+
+@admin.register(Historial)
+class HistorialAdmin(admin.ModelAdmin):
+    list_display = ("id", "usuario", "accion", "modulo", "fecha", "descripcion")
+    list_filter = ("accion", "modulo")
+    search_fields = ("usuario__username", "accion", "modulo", "descripcion")
+    ordering = ("-fecha",)
