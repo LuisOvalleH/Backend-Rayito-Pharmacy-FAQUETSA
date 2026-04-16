@@ -10,6 +10,8 @@ from .views import (
     ProductImageUploadView,
     ProductoViewSet,
     ServicioViewSet,
+    historial_list, 
+    configuracion_limpieza
 )
 
 router = DefaultRouter()
@@ -25,9 +27,9 @@ router.register(r"confianza",  ConfianzaViewSet, basename="confianza")
 urlpatterns = [
     path("", include(router.urls)),
     path("uploads/product-image/", ProductImageUploadView.as_view(), name="product_image_upload"),
+    path("historial/", historial_list),
+    path("configuracion-limpieza/", configuracion_limpieza),
     path("contacto/", ContactoView.as_view(), name="contacto")
-    
-    
-]
+    ]
 
 

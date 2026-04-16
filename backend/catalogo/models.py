@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class Categoria(models.Model):
@@ -73,6 +74,34 @@ class ImagenInformacion(models.Model):
 
     def __str__(self):
         return self.titulo
+
+class Historial(models.Model):
+    Modulos = [
+        ("categorias", "Categorías"), 
+        ("productos", "Productos"), 
+        ("usuarios", "Usuarios")]
+    
+    modulo = models.CharField(max_length=20, choices=Modulos)
+    accion = models.CharField(max_length=255)
+    descripcion = models.TextField(blank=True, default="")
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Historial"
+        verbose_name_plural = "Historiales"
+        ordering = ["-fecha"]
+
+    def __str__(self):
+        return f"{self.usuario} - {self.accion} - {self.modulo}"
+
+class ConfiguracionSistema(models.Model):
+    meses_retencion_historial = models.IntegerField(default=0) 
+
+    class Meta:
+        verbose_name = "Configuración del Sistema"
+            
+
 
 class Servicio(models.Model):
     icon = models.CharField(max_length=10)
