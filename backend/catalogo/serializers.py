@@ -1,8 +1,9 @@
 from rest_framework import serializers
-from .models import Producto, Categoria, ImagenInformacion
+from .models import Producto, Categoria, ImagenInformacion, Servicio, PasoProceso, Confianza
 from .cloudinary_service import upload_product_image
 from django.utils.text import slugify
 from django.contrib.auth.models import User
+
 
 
 
@@ -162,13 +163,12 @@ class ImagenInformacionSerializer(serializers.ModelSerializer):
             })
 
         if imagen_file:
+            content_type = getattr(imagen_file, "content_type", "")
             allowed_types = ["image/jpeg", "image/png", "image/webp"]
             if content_type not in allowed_types:
                 raise serializers.ValidationError({
                     "imagen_file": "Solo se permiten JPG, PNG o WEBP."
                 })
-            
-            content_type = getattr(imagen_file, "content_type", "")
             if not content_type.startswith("image/"):
                 raise serializers.ValidationError({
                     "imagen_file": "Solo se permiten archivos de imagen."
@@ -193,3 +193,21 @@ class ImagenInformacionSerializer(serializers.ModelSerializer):
         if imagen_file:
             validated_data["imagen"] = upload_product_image(imagen_file)
         return super().update(instance, validated_data)
+    
+
+class ServicioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Servicio
+        fields = "__all__"
+
+class PasoProcesoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PasoProceso
+        fields = "__all__"
+
+class ConfianzaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Confianza
+        fields = "__all__"
+
+

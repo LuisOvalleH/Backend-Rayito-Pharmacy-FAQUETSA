@@ -103,3 +103,27 @@ class ConfiguracionSistema(models.Model):
             
 
 
+class Servicio(models.Model):
+    icon = models.CharField(max_length=10)
+    title = models.CharField(max_length=255)
+    text = models.TextField()
+
+    def __str__(self):
+        return self.title
+    
+class PasoProceso(models.Model):
+    numero = models.CharField(max_length=10)
+    title = models.CharField(max_length=255)
+    text = models.TextField()
+
+    def __str__(self):
+        return self.title
+
+
+class Confianza(models.Model):
+    icon = models.CharField(max_length=10)
+    title = models.CharField(max_length=255)
+    text = models.TextField()
+
+    def __str__(self):
+        return self.title

@@ -10,6 +10,8 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework import viewsets
 from django.contrib.auth.models import User
+from django.conf import settings
+from django.core.mail import send_mail
 from .serializers import AdminSerializer
 from .permissions import IsSuperAdmin
 
@@ -18,8 +20,8 @@ from rest_framework.decorators import api_view, permission_classes, action
 
 from django.utils import timezone
 
-from .models import Producto, Categoria, ImagenInformacion, Historial, ConfiguracionSistema
-from .serializers import ProductoSerializer, CategoriaSerializer, ImagenInformacionSerializer
+from .models import Producto, Categoria, ImagenInformacion, Servicio, PasoProceso, Confianza, Historial, ConfiguracionSistema
+from .serializers import ProductoSerializer, CategoriaSerializer, ImagenInformacionSerializer, ServicioSerializer, PasoProcesoSerializer, ConfianzaSerializer
 from .cloudinary_service import upload_product_image
 
 
@@ -169,7 +171,7 @@ class ProductImageUploadView(APIView):
 
         image_url = upload_product_image(file_obj)
         return Response({"url": image_url}, status=status.HTTP_201_CREATED)
-    
+
 class AdminViewSet(viewsets.ModelViewSet):
     queryset = User.objects.filter(is_staff=True)
     serializer_class = AdminSerializer
@@ -263,3 +265,43 @@ def configuracion_limpieza(request):
         config.meses_retencion_historial = meses
         config.save()
         return Response({'status': 'Configuración actualizada'})
+
+class ContactoView(APIView):
+    def post(self, request):
+        nombre = request.data.get("nombre")
+        apellido = request.data.get("apellido")
+        email = request.data.get("email")
+        mensaje = request.data.get("mensaje")
+
+        send_mail(
+            subject="Nuevo mensaje desde formulario de contacto",
+            message=f"""
+Nombre: {nombre}
+Apellido: {apellido}
+Correo: {email}
+
+Mensaje:
+{mensaje}
+            """,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[settings.CONTACT_RECEIVER_EMAIL],
+            fail_silently=False,
+        )
+
+        return Response(
+            {"message": "Correo enviado correctamente"},
+            status=status.HTTP_200_OK
+        )
+    
+
+class ServicioViewSet(viewsets.ModelViewSet):
+    queryset = Servicio.objects.all()
+    serializer_class = ServicioSerializer
+
+class PasoProcesoViewSet(viewsets.ModelViewSet):
+    queryset = PasoProceso.objects.all()
+    serializer_class = PasoProcesoSerializer
+
+class ConfianzaViewSet(viewsets.ModelViewSet):
+    queryset = Confianza.objects.all()
+    serializer_class = ConfianzaSerializer
