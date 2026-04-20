@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class Categoria(models.Model):
@@ -56,3 +57,73 @@ class Producto(models.Model):
     def disponible(self):
         # Para el front: True solo si está disponible
         return self.estado == self.Estado.DISPONIBLE
+
+class ImagenInformacion(models.Model):
+    titulo = models.CharField(max_length=120)
+    descripcion = models.TextField(blank=True, default="")
+    imagen = models.URLField()
+    orden = models.PositiveIntegerField(default=0)
+    activa = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Imagen de información"
+        verbose_name_plural = "Imágenes de información"
+        ordering = ["orden", "-updated_at"]
+
+    def __str__(self):
+        return self.titulo
+
+class Historial(models.Model):
+    Modulos = [
+        ("categorias", "Categorías"), 
+        ("productos", "Productos"), 
+        ("usuarios", "Usuarios")]
+    
+    modulo = models.CharField(max_length=20, choices=Modulos)
+    accion = models.CharField(max_length=255)
+    descripcion = models.TextField(blank=True, default="")
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Historial"
+        verbose_name_plural = "Historiales"
+        ordering = ["-fecha"]
+
+    def __str__(self):
+        return f"{self.usuario} - {self.accion} - {self.modulo}"
+
+class ConfiguracionSistema(models.Model):
+    meses_retencion_historial = models.IntegerField(default=0) 
+
+    class Meta:
+        verbose_name = "Configuración del Sistema"
+            
+
+
+class Servicio(models.Model):
+    icon = models.CharField(max_length=10)
+    title = models.CharField(max_length=255)
+    text = models.TextField()
+
+    def __str__(self):
+        return self.title
+    
+class PasoProceso(models.Model):
+    numero = models.CharField(max_length=10)
+    title = models.CharField(max_length=255)
+    text = models.TextField()
+
+    def __str__(self):
+        return self.title
+
+
+class Confianza(models.Model):
+    icon = models.CharField(max_length=10)
+    title = models.CharField(max_length=255)
+    text = models.TextField()
+
+    def __str__(self):
+        return self.title
