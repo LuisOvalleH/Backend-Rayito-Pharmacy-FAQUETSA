@@ -1,22 +1,38 @@
-# Backend Rayito Pharmacy + Frontend
+# Rayito Pharmacy Backend
 
-## Estado actual
+Django REST backend for the Rayito Pharmacy web platform. It provides the API layer for authentication, catalog administration, product images, services, contact data, history, and the admin dashboard used by the React frontend.
 
-- Backend Django con autenticacion JWT para admin.
-- Frontend React/Vite con login real y rutas admin protegidas.
-- Soporte para SQLite en local y PostgreSQL (Neon) por `DATABASE_URL`.
-
-## Requisitos
+## Tech Stack
 
 - Python 3.12
-- Node.js 20+
+- Django
+- Django REST Framework
+- JWT authentication
+- SQLite for local development
+- PostgreSQL / Neon for production
+- Cloudinary for product image uploads
 
-## Ejecutar backend
+## Current Scope
 
-Desde `c:\Users\luism\Backend-Rayito-Pharmacy-FAQUETSA`:
+- Admin authentication with JWT
+- Product, category, service, contact, and history modules
+- Image upload support through Cloudinary
+- Local SQLite support
+- Production-ready PostgreSQL configuration through `DATABASE_URL`
+- CORS/CSRF configuration for a separated frontend
+
+## Getting Started
+
+Create and activate a virtual environment:
 
 ```powershell
+python -m venv venv
 .\venv\Scripts\Activate.ps1
+```
+
+Install dependencies and run migrations:
+
+```powershell
 cd backend
 pip install -r requirements.txt
 Copy-Item .env.example .env
@@ -25,96 +41,56 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Backend: `http://127.0.0.1:8000`
+The API runs locally at:
 
-## Ejecutar frontend
-
-Desde `C:\Users\luism\Frontend-rayito-Pharmacy`:
-
-```powershell
-npm install
-npm run dev
+```text
+http://127.0.0.1:8000
 ```
 
-Frontend: `http://localhost:5173`
-
-Login admin: `http://localhost:5173/admin/login`
-
-## Migrar de SQLite a Neon PostgreSQL
-
-1. Crear un proyecto en Neon y copiar la cadena de conexion.
-2. En `backend/.env`, configurar:
+## Environment Variables
 
 ```env
-DJANGO_SECRET_KEY=tu-secret-key
-DJANGO_DEBUG=False
+DJANGO_SECRET_KEY=change-me
+DJANGO_DEBUG=True
 DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
 DJANGO_CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 DATABASE_URL=postgresql://USER:PASSWORD@HOST/DBNAME?sslmode=require
 POSTGRES_CONN_MAX_AGE=60
 POSTGRES_SSLMODE=require
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+CLOUDINARY_UPLOAD_FOLDER=rayito-pharmacy
 ```
 
-3. Exportar los datos actuales desde SQLite:
+## Migrating From SQLite To Neon PostgreSQL
+
+Export local data:
 
 ```powershell
 python manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.permission > data.json
 ```
 
-4. Aplicar migraciones sobre Neon:
+Apply migrations on PostgreSQL:
 
 ```powershell
 python manage.py migrate
 ```
 
-5. Importar los datos:
+Import the exported data:
 
 ```powershell
 python manage.py loaddata data.json
 ```
 
-6. Verificar:
+## Quality Checks
 
 ```powershell
 python manage.py check
 python manage.py test
 ```
 
-## Variables de entorno
+## Related Repository
 
-- `DJANGO_SECRET_KEY`: clave secreta de Django.
-- `DJANGO_DEBUG`: `True` en local, `False` en produccion.
-- `DJANGO_ALLOWED_HOSTS`: hosts permitidos separados por coma.
-- `DJANGO_CORS_ALLOWED_ORIGINS`: origins del frontend separados por coma.
-- `DJANGO_CSRF_TRUSTED_ORIGINS`: origins confiables para CSRF.
-- `DJANGO_SECURE_SSL_REDIRECT`: forzar HTTPS cuando aplique.
-- `DJANGO_USE_SQLITE_FOR_TESTS`: deja los tests en SQLite aunque el proyecto use Neon.
-- `DATABASE_URL`: conexion PostgreSQL completa, recomendada para Neon.
-- `POSTGRES_*`: alternativa si no se usa `DATABASE_URL`.
-- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`: credenciales de Cloudinary para subir imagenes desde el admin.
-- `CLOUDINARY_UPLOAD_FOLDER`: carpeta destino en Cloudinary.
-
-## Imagenes de productos
-
-- El admin de productos ya acepta imagenes desde la PC.
-- El backend recibe el archivo y lo sube a Cloudinary.
-- En la base de datos solo se guarda la URL final de la imagen.
-
-## Validacion rapida
-
-Backend:
-
-```powershell
-cd backend
-python manage.py check
-python manage.py test
-```
-
-Frontend:
-
-```powershell
-cd C:\Users\luism\Frontend-rayito-Pharmacy
-npm run lint
-npm run build
-```
+- Frontend: https://github.com/LuisOvalleH/Frontend-rayito-Pharmacy
